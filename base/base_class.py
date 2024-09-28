@@ -1,15 +1,15 @@
 import datetime
 import time
-import random
 import re
+from tkinter.tix import Select
+
 import allure
 import os
-import platform
-from typing import Any, ClassVar, Dict, Type, NoReturn, Optional
+from typing import Any, Dict, Type, NoReturn, Optional
 from selenium import webdriver
-from selenium.common import TimeoutException, ElementClickInterceptedException, JavascriptException
+from selenium.common import TimeoutException
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver import ActionChains, Keys
+from selenium.webdriver import Keys
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -320,3 +320,39 @@ class Base:
             if press_enter:
                 field_dict['element'].send_keys(Keys.ENTER)
             print(f"{('Click and ' if click_first else '')}Input in {field_dict['name']}: " + log_value)
+    
+    def select_option(self, element_dict: Dict[str, str], option: str, by: str = 'text',
+                      wait_type: str = 'clickable') -> None:
+        """
+        Выбирает опцию в выпадающем списке <select> с опциональным типом ожидания и шагами Allure.
+
+        Parameters
+        ----------
+        element_dict : dict
+            Словарь с информацией о <select> элементе.
+        option : str
+            Опция для выбора. Это может быть текст, значение или индекс.
+        by : str, optional
+            Критерий выбора опции ('text', 'value', 'index'). По умолчанию 'text'.
+        wait_type : str, optional
+            Тип ожидания элемента перед выбором ('clickable', 'visible', 'located', 'find'). По умолчанию 'clickable'.
+
+        """
+        step_title = f"Select '{option}' from dropdown {element_dict['name']}"
+        
+        with allure.step(step_title):
+            # Получаем элемент <select> с заданным типом ожидания
+            select_element = self.get_element(element_dict, wait_type)['element']
+            select = Select(select_element)
+            
+            # Выбор опции в зависимости от критерия
+            if by == 'text':
+                select.select_by_visible_text(option)
+            elif by == 'value':
+                select.select_by_value(option)
+            elif by == 'index':
+                select.select_by_index(int(option))
+            else:
+                raise ValueError(f"Недопустимый критерий выбора опции: выберите 'text', 'value' или 'index'.")
+            
+            print(f"Selected option: {option} by {by}")
