@@ -1,10 +1,9 @@
 import datetime
 import time
 import re
-from tkinter.tix import Select
-
 import allure
 import os
+from selenium.webdriver.support.ui import Select
 from typing import Any, Dict, Type, NoReturn, Optional
 from selenium import webdriver
 from selenium.common import TimeoutException
@@ -221,7 +220,7 @@ class Base:
         Если тест запускается с Allure, прикрепляет скриншот к отчету Allure.
         """
         # Всегда сохраняем скриншот в базовую папку
-        screenshot_dir = 'C:\\Users\\Gans\\PycharmProjects\\VezubrWebAuto\\screens'
+        screenshot_dir = 'C:\\Users\\Gans\\PycharmProjects\\CellListAuto\\screens'
         print(f"Saving screenshot to default directory: {screenshot_dir}")
         
         # Создаем имя файла скриншота с таймштампом и названием теста (если указано)
@@ -321,6 +320,8 @@ class Base:
                 field_dict['element'].send_keys(Keys.ENTER)
             print(f"{('Click and ' if click_first else '')}Input in {field_dict['name']}: " + log_value)
     
+    """Select option in dropdown by text, value or index """
+    
     def select_option(self, element_dict: Dict[str, str], option: str, by: str = 'text',
                       wait_type: str = 'clickable') -> None:
         """
@@ -338,7 +339,8 @@ class Base:
             Тип ожидания элемента перед выбором ('clickable', 'visible', 'located', 'find'). По умолчанию 'clickable'.
 
         """
-        step_title = f"Select '{option}' from dropdown {element_dict['name']}"
+        # Формируем шаг Allure с названием выпадающего списка
+        step_title = f"Select '{option}' from dropdown '{element_dict['name']}'"
         
         with allure.step(step_title):
             # Получаем элемент <select> с заданным типом ожидания
@@ -355,4 +357,5 @@ class Base:
             else:
                 raise ValueError(f"Недопустимый критерий выбора опции: выберите 'text', 'value' или 'index'.")
             
-            print(f"Selected option: {option} by {by}")
+            # Вывод в консоль с именем выпадающего списка
+            print(f"Selected option '{option}' from dropdown '{element_dict['name']}' by {by}")

@@ -1,3 +1,4 @@
+import allure
 from base.base_class import Base
 
 
@@ -44,5 +45,15 @@ class CellList(Base):
         "xpath": "(//div[@class='gwt-HTML'])[2]",
         "name": 'Contact counter text'
     }
+    
+    # Methods
+    """Open page"""
+    def open_page(self):
+        """
+        Открывает страницу CellList.
+        """
+        with allure.step("Open CellList page"):
+            self.driver.get(self.url)
+            print("Opening CellList page: " + self.url)
     
     
