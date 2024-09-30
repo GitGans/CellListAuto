@@ -1,3 +1,5 @@
+import time
+
 import allure
 from base.base_class import Base
 
@@ -45,15 +47,73 @@ class CellList(Base):
         "xpath": "(//div[@class='gwt-HTML'])[2]",
         "name": 'Contact counter text'
     }
+    contact_list = {
+        "xpath": "//div[contains(@class, 'CMWVMEC-p-b')]",
+        "name": 'Contact list'
+    }
+    first_contact_card = {
+        "xpath": "//div[@__idx='0']",
+        "name": 'First contact card'
+    }
+    first_contact_names = {
+        "xpath": "(//td[@style='font-size:95%;'])[1]",
+        "name": 'First contact names'
+    }
+    first_contact_address = {
+        "xpath": "(//td[@style='font-size:95%;']/ancestor::tr/following-sibling::tr/td)[1]",
+        "name": 'First contact address'
+    }
+    new_contact_card = {
+        "xpath": "//div[@__idx='250']",
+        "name": 'New contact card'
+    }
+    new_contact_names = {
+        "xpath": "(//td[@style='font-size:95%;'])[251]",
+        "name": 'New contact names'
+    }
+    new_contact_address = {
+        "xpath": "(//td[@style='font-size:95%;']/ancestor::tr/following-sibling::tr/td)[251]",
+        "name": 'New contact address'
+    }
     
     # Methods
     """Open page"""
-    def open_page(self):
+    def open_page(self) -> None:
         """
         Открывает страницу CellList.
         """
         with allure.step("Open CellList page"):
-            self.driver.get(self.url)
+            self.driver.maximize_window()  # Разворачиваем окно браузера в полноэкранный режим
+            self.driver.get(self.url)  # Открываем нужную страницу
             print("Opening CellList page: " + self.url)
     
-    
+    def scroll_to_bottom(self) -> None:
+        """
+        Скроллит список контактов до самого низа, пока не будет достигнут конец списка.
+        """
+        with allure.step("Scroll to the bottom of the contact list"):
+            # Получаем элемент списка контактов, ожидая, пока он станет видимым
+            contact_list_element = self.get_element(self.contact_list, wait_type="visible")['element']
+            
+            # Получаем начальную высоту элемента списка для отслеживания изменений
+            last_height = self.driver.execute_script("return arguments[0].scrollHeight", contact_list_element)
+            
+            # Начинаем цикл для скролла до тех пор, пока высота списка не перестанет изменяться
+            while True:
+                # Скроллим вниз на высоту списка
+                self.driver.execute_script("arguments[0].scrollTo(0, arguments[0].scrollHeight);", contact_list_element)
+                
+                # Задержка для выполнения скролла
+                time.sleep(0.1)
+                
+                # Получаем новую высоту списка после скролла
+                new_height = self.driver.execute_script("return arguments[0].scrollHeight", contact_list_element)
+                
+                # Если новая высота равна старой, значит, достигнут конец списка
+                if new_height == last_height:
+                    print("Reached the bottom of the contact list.")
+                    break  # Прерываем цикл, когда достигнут низ списка
+                
+                # Обновляем высоту для следующего цикла
+                last_height = new_height
+                

@@ -8,7 +8,7 @@ from faker import Faker
 @allure.feature('Создание контакта')
 @allure.description('Тест создания нового контакта: '
                     'имя, фамилия, дата рождения и адрес - Случайные, тип контакта - Случайный выбор')
-def test_create_contact_type_contacts(base_fixture):
+def test_create_contact(base_fixture):
     base = base_fixture  # Получаем объект base из фикстуры
     cell_list_page = CellList(base.driver)  # Инициализация класса CellList
     
@@ -54,3 +54,22 @@ def test_create_contact_type_contacts(base_fixture):
     # Добавляем информацию о созданном контакте в отчёт Allure
     with allure.step(f"Создан контакт: {first_name} {last_name}, {birthday}, {address}, {random_contact_type}"):
         print(f"Создан контакт: {first_name} {last_name}, {birthday}, {address}, {random_contact_type}")
+        
+    # Скроллим до конца списка после создания контакта
+    cell_list_page.scroll_to_bottom()
+    
+    # Добавляем проверку счетчика контактов после скролла
+    cell_list_page.flexible_assert_word(cell_list_page.contact_counter_text, "0 - 251 : 251")
+    
+    # Склеиваем сгенерированные имя и фамилию
+    expected_full_name = f"{first_name} {last_name}"
+    
+    # Сравниваем имя нового контакта с ожидаемым
+    cell_list_page.flexible_assert_word(cell_list_page.new_contact_names, expected_full_name)
+    
+    # Форматируем адрес: убираем символы новой строки для корректного сравнения
+    expected_address = address.replace('\n', ' ')
+    
+    # Сравниваем имя нового контакта с ожидаемым
+    cell_list_page.flexible_assert_word(cell_list_page.new_contact_address, expected_address)
+    

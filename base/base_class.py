@@ -3,8 +3,10 @@ import time
 import re
 import allure
 import os
+
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import Select
-from typing import Any, Dict, Type, NoReturn, Optional
+from typing import Dict, Type, Optional, Union
 from selenium import webdriver
 from selenium.common import TimeoutException
 from selenium.webdriver.chrome.service import Service
@@ -20,7 +22,7 @@ WINDOWS_DRIVER_PATH = os.path.join('resource', 'windows', 'chromedriver.exe')
 
 class Base:
     """
-    Базовый класс содержащий методы для взаимодействия с веб-драйвером.
+    Базовый класс, содержащий методы для взаимодействия с веб-драйвером.
     """
     driver: WebDriver
 
@@ -51,7 +53,6 @@ class Base:
         # Настройки для Windows
         chrome_driver_path = WINDOWS_DRIVER_PATH
         options.add_argument('--window-size=1920x1080')
-        # options.add_argument('--headless')  # Режим без графического интерфейса, можно активировать при необходимости
         
         service = Service(chrome_driver_path)
         driver = webdriver.Chrome(options=options, service=service)
@@ -70,17 +71,9 @@ class Base:
             print("Test finish")
             self.driver.quit()
     
-    """ Get current url"""
-    def get_current_url(self) -> None:
-        """
-        Получает и выводит текущий URL адрес в консоль.
-        """
-        get_url = self.driver.current_url
-        with allure.step(title="Current url: " + get_url):
-            print("Current url: " + get_url)
-    
     """ Get element with choosing a method for obtaining an element"""
-    def get_element(self, element_info: Dict[str, str], wait_type: str = 'clickable') -> Dict[str, Any]:
+    def get_element(self, element_info: Dict[str, str], wait_type: str = 'clickable') \
+            -> Dict[str, Union[None, WebElement]]:
         """
         Ожидает элемент в зависимости от выбранного типа ожидания и возвращает его.
 
@@ -94,7 +87,7 @@ class Base:
         Returns
         -------
         dict
-            Словарь с информацией о найденном элементе.
+            Словарь с информацией о найденном элементе или None, если элемент не найден.
         """
         try:
             if wait_type == 'clickable':
@@ -151,40 +144,6 @@ class Base:
         """
         return datetime.datetime.utcnow().strftime("%Y.%m.%d.%H.%M.%S")
     
-    """ Assert word fix reference"""
-    def assert_word(self, element_dict: Dict[str, str], wait_type: str = 'clickable') -> NoReturn:
-        """
-        Проверяет, что текст элемента соответствует заданному значению. Если предоставлен 'reference_xpath',
-        использует его для точного определения элемента для проверки текста.
-
-        Parameters
-        ----------
-        element_dict : dict
-            Словарь с информацией о локаторе элемента и ожидаемым текстом.
-            Может включать 'reference_xpath' для спецификации элемента, текст которого следует проверять.
-        wait_type : str, optional
-            Тип ожидания элемента ('clickable', 'visible', 'located', 'find').
-
-        Raises
-        ------
-        AssertionError
-            Если текст элемента не соответствует ожидаемому значению.
-        """
-        if 'reference_xpath' in element_dict:
-            reference_element = self.get_element(
-                {'name': 'Reference element', 'xpath': element_dict['reference_xpath']}, wait_type='located')['element']
-            time.sleep(0.1)  # Фиксированная задержка
-            value_word = reference_element.text
-        else:
-            element = self.get_element(element_dict, wait_type=wait_type)['element']
-            time.sleep(0.1)  # Фиксированная задержка
-            value_word = element.text
-        
-        with allure.step(title=f"Assert \"{value_word}\" == \"{element_dict['reference']}\""):
-            assert re.fullmatch(element_dict['reference'],
-                                value_word), f"Expected '{element_dict['reference']}', but found '{value_word}'."
-            print(f"Assert \"{value_word}\" == \"{element_dict['reference']}\"")
-            
         """ Assert word input reference"""
     def flexible_assert_word(self, element_dict: Dict[str, str], reference_value: str,
                              wait_type: str = 'clickable') -> None:
@@ -214,13 +173,24 @@ class Base:
             print(f"Assert \"{actual_text}\" == \"{reference_value}\"")
     
     """ Get screenshot"""
-    def get_screenshot(self, test_name: str = None) -> NoReturn:
+    def get_screenshot(self, test_name: str = None) -> None:
         """
         Сохраняет скриншот текущего состояния браузера в базовую папку.
         Если тест запускается с Allure, прикрепляет скриншот к отчету Allure.
+
+        Parameters
+        ----------
+        test_name : str, optional
+            Имя теста, используется для именования скриншота. Если не указано, используется только таймштамп.
         """
-        # Всегда сохраняем скриншот в базовую папку
-        screenshot_dir = 'C:\\Users\\Gans\\PycharmProjects\\CellListAuto\\screens'
+        # Определяем базовый путь относительно текущего файла (в корне проекта)
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        screenshot_dir = os.path.join(base_dir, '..', 'screens')
+        
+        # Создаем директорию, если она не существует
+        if not os.path.exists(screenshot_dir):
+            os.makedirs(screenshot_dir)
+        
         print(f"Saving screenshot to default directory: {screenshot_dir}")
         
         # Создаем имя файла скриншота с таймштампом и названием теста (если указано)
@@ -233,10 +203,6 @@ class Base:
         # Полный путь для сохранения скриншота
         screenshot_path = os.path.join(screenshot_dir, name_screenshot)
         
-        # Проверяем, существует ли папка, и создаем ее, если не существует
-        if not os.path.exists(screenshot_dir):
-            os.makedirs(screenshot_dir)
-        
         # Сохраняем скриншот
         self.driver.save_screenshot(screenshot_path)
         
@@ -244,16 +210,13 @@ class Base:
         with allure.step(title="Screen taken: " + name_screenshot):
             print(f"Screenshot saved successfully at: {screenshot_path}")
             
-            # Прикрепляем файл скриншота только если используется Allure
-            if hasattr(self, 'allure_dir') and self.allure_dir:
-                allure.attach.file(screenshot_path, name="Screenshot", attachment_type=allure.attachment_type.PNG)
+            # Прикрепляем файл скриншота к отчету Allure
+            allure.attach.file(screenshot_path, name="Screenshot", attachment_type=allure.attachment_type.PNG)
     
     """ Click button"""
-    def click_button(self, element_dict: Dict[str, str], index: int = 1, do_assert: Optional[bool] = False,
-                     wait_type: str = 'clickable') -> NoReturn:
+    def click_button(self, element_dict: Dict[str, str], index: int = 1, wait_type: str = 'clickable') -> None:
         """
         Кликает по кнопке с заданным типом ожидания и опционально по индексу элемента.
-        Может выполнять дополнительную проверку текста элемента после клика (ассерт).
 
         Parameters
         ----------
@@ -261,8 +224,6 @@ class Base:
             Словарь с информацией о кнопке для клика.
         index : int, optional
             Индекс элемента в списке однотипных элементов. По умолчанию 1 (первый элемент).
-        do_assert : bool, optional
-            Если True, выполнит дополнительную проверку текста элемента после клика.
         wait_type : str, optional
             Тип ожидания элемента перед кликом ('clickable', 'visible', 'located', 'find'), по умолчанию 'clickable'.
 
@@ -275,9 +236,6 @@ class Base:
             button_dict = self.get_element(updated_element_dict, wait_type)
             button_dict['element'].click()
             print(f"Click on {button_dict['name']}")
-        
-        if do_assert:
-            self.assert_word(element_dict)
     
     """ Input in field with optional click, enter, index """
     def input_in_field(self, element_dict: Dict[str, str], value: str, click_first: bool = False,
@@ -321,7 +279,6 @@ class Base:
             print(f"{('Click and ' if click_first else '')}Input in {field_dict['name']}: " + log_value)
     
     """Select option in dropdown by text, value or index """
-    
     def select_option(self, element_dict: Dict[str, str], option: str, by: str = 'text',
                       wait_type: str = 'clickable') -> None:
         """
@@ -359,3 +316,35 @@ class Base:
             
             # Вывод в консоль с именем выпадающего списка
             print(f"Selected option '{option}' from dropdown '{element_dict['name']}' by {by}")
+            
+    """ Backspace all and input with optional click, enter"""
+    def backspace_all_and_input(self, element_dict: Dict[str, str], value: str,
+                                click_first: bool = False, press_enter: Optional[bool] = False) -> None:
+        """
+        Очищает поле ввода путем нажатий клавиши Backspace для каждого символа в поле,
+        затем вводит новое значение.
+
+        Parameters
+        ----------
+        element_dict : dict
+            Словарь с информацией о поле ввода.
+        value : str
+            Значение для ввода.
+        click_first : bool, optional
+            Если True, сначала кликает по полю перед вводом текста.
+        press_enter : bool, optional
+            Если True, нажимает Enter после ввода значения.
+
+        """
+        element_name = element_dict['name']
+        with allure.step(title=f"{'Click and ' if click_first else ''}Backspace and input in {element_name}: {value}"):
+            field_dict = self.get_element(element_dict)
+            if click_first:
+                field_dict['element'].click()
+            current_value = field_dict['element'].get_attribute('value')
+            for _ in range(len(current_value)):
+                field_dict['element'].send_keys(Keys.BACKSPACE)
+            field_dict['element'].send_keys(value)
+            if press_enter:
+                field_dict['element'].send_keys(Keys.ENTER)
+            print(f"{'Click and ' if click_first else ''}Backspaced and input in {element_name}: {value}")
