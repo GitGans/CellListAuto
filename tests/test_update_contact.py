@@ -69,12 +69,12 @@ def test_update_contact(base_fixture):
     # Склеиваем сгенерированные имя и фамилию
     expected_full_name = f"{first_name} {last_name}"
     
-    # Сравниваем имя нового контакта с ожидаемым
+    # Сравниваем имя обновленного контакта с ожидаемым
     cell_list_page.flexible_assert_word(cell_list_page.first_contact_names, expected_full_name)
     
     # Форматируем адрес: убираем символы новой строки для корректного сравнения
     expected_address = address.replace('\n', ' ')
     
-    # Сравниваем имя нового контакта с ожидаемым
+    # Сравниваем адрес обновленного контакта с ожидаемым
     cell_list_page.flexible_assert_word(cell_list_page.first_contact_address, expected_address)
     
