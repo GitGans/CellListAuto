@@ -1,20 +1,20 @@
 import datetime
 import time
 import re
-import allure
 import os
+import allure
 
-from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.support.ui import Select
-from typing import Dict, Type, Optional, Union
 from selenium import webdriver
 from selenium.common import TimeoutException
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver import Keys
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
+from typing import Dict, Type, Optional
 
 # Путь к драйверу
 WINDOWS_DRIVER_PATH = os.path.join('resource', 'windows', 'chromedriver.exe')
@@ -25,7 +25,7 @@ class Base:
     Базовый класс, содержащий методы для взаимодействия с веб-драйвером.
     """
     driver: WebDriver
-
+    
     def __init__(self, driver: WebDriver) -> None:
         """
         Инициализирует экземпляр класса с драйвером.
@@ -37,7 +37,8 @@ class Base:
         """
         self.driver = driver
     
-    """ Get driver"""
+    """ Get driver """
+    
     @classmethod
     def get_driver(cls: Type['Base']) -> 'Base':
         """
@@ -57,32 +58,34 @@ class Base:
         service = Service(chrome_driver_path)
         driver = webdriver.Chrome(options=options, service=service)
         
-        with allure.step(title="Start test"):
+        with allure.step("Start test"):
             print("Start test")
         
         return cls(driver)
     
-    """Test finish"""
+    """ Test finish """
+    
     def test_finish(self) -> None:
         """
         Завершает тест и закрывает браузер.
         """
-        with allure.step(title="Test finish"):
+        with allure.step("Test finish"):
             print("Test finish")
             self.driver.quit()
     
-    """ Get element with choosing a method for obtaining an element"""
+    """ Get element with choosing a method for obtaining an element """
+    
     def get_element(self, element_info: Dict[str, str], wait_type: str = 'clickable') \
-            -> Dict[str, Union[None, WebElement]]:
+            -> Dict[str, Optional[WebElement]]:
         """
-        Ожидает элемент в зависимости от выбранного типа ожидания и возвращает его.
+        Ожидает элемент в зависимости от выбранного типа ожидания и возвращает элемент.
 
         Parameters
         ----------
         element_info : dict
             Информация о локаторе элемента.
         wait_type : str, optional
-            Тип ожидания: 'clickable', 'visible', 'located', 'find', или 'invisibility'.
+            Тип ожидания: 'clickable', 'visible', 'located', 'find', или 'invisibility'. По умолчанию 'clickable'.
 
         Returns
         -------
@@ -111,27 +114,15 @@ class Base:
             return {'name': element_info['name'], 'element': element}
         
         except TimeoutException:
-            message = ""
-            if wait_type == 'clickable':
-                message = f"Element '{element_info['name']}' is not clickable"
-            elif wait_type == 'visible':
-                message = f"Element '{element_info['name']}' is not visible"
-                with allure.step(message):
-                    print(message)
-                # Возвращаем None, чтобы тест продолжился
-                return {'name': element_info['name'], 'element': None}
-            elif wait_type == 'located':
-                message = f"Element '{element_info['name']}' is not located"
-            elif wait_type == 'find':
-                message = f"Element '{element_info['name']}' is not found"
-            elif wait_type == 'invisibility':
-                message = f"Element '{element_info['name']}' is not invisible"
-            
+            message = f"Element '{element_info['name']}' is not {wait_type}"
             with allure.step(message):
                 print(message)
+            if wait_type == 'visible':
+                return {'name': element_info['name'], 'element': None}
             raise TimeoutException(message)
-
-    """ Get timestamp with dot"""
+    
+    """ Get timestamp with dot """
+    
     @staticmethod
     def get_timestamp_dot() -> str:
         """
@@ -144,7 +135,8 @@ class Base:
         """
         return datetime.datetime.utcnow().strftime("%Y.%m.%d.%H.%M.%S")
     
-        """ Assert word input reference"""
+    """ Assert word input reference """
+    
     def flexible_assert_word(self, element_dict: Dict[str, str], reference_value: str,
                              wait_type: str = 'clickable') -> None:
         """
@@ -157,7 +149,7 @@ class Base:
         reference_value : str
             Ожидаемый текст или значение для проверки соответствия тексту элемента или его атрибуту 'value'.
         wait_type : str, optional
-            Тип ожидания элемента ('clickable', 'visible', 'located', 'find').
+            Тип ожидания элемента ('clickable', 'visible', 'located', 'find'). По умолчанию 'clickable'.
 
         Raises
         ------
@@ -165,14 +157,15 @@ class Base:
             Если текст элемента или его атрибут 'value' не соответствует ожидаемому значению.
         """
         element = self.get_element(element_dict, wait_type=wait_type)['element']
-        time.sleep(0.1)  # Фиксированная задержка
-        actual_text = element.text or element.get_attribute('value')  # Получаем текст или значение атрибута 'value'
-        with allure.step(title=f"Assert \"{actual_text}\" == \"{reference_value}\""):
+        time.sleep(0.1)
+        actual_text = element.text or element.get_attribute('value')
+        with allure.step(f"Assert \"{actual_text}\" == \"{reference_value}\""):
             assert re.fullmatch(reference_value,
                                 actual_text), f"Expected '{reference_value}', but found '{actual_text}'."
             print(f"Assert \"{actual_text}\" == \"{reference_value}\"")
     
-    """ Get screenshot"""
+    """ Get screenshot """
+    
     def get_screenshot(self, test_name: str = None) -> None:
         """
         Сохраняет скриншот текущего состояния браузера в базовую папку.
@@ -183,68 +176,48 @@ class Base:
         test_name : str, optional
             Имя теста, используется для именования скриншота. Если не указано, используется только таймштамп.
         """
-        # Определяем базовый путь относительно текущего файла (в корне проекта)
         base_dir = os.path.dirname(os.path.abspath(__file__))
         screenshot_dir = os.path.join(base_dir, '..', 'screens')
         
-        # Создаем директорию, если она не существует
         if not os.path.exists(screenshot_dir):
             os.makedirs(screenshot_dir)
         
         print(f"Saving screenshot to default directory: {screenshot_dir}")
         
-        # Создаем имя файла скриншота с таймштампом и названием теста (если указано)
         timestamp = self.get_timestamp_dot()
-        if test_name:
-            name_screenshot = f'{test_name}_{timestamp}.png'
-        else:
-            name_screenshot = f'{timestamp}.png'
-        
-        # Полный путь для сохранения скриншота
+        name_screenshot = f'{test_name}_{timestamp}.png' if test_name else f'{timestamp}.png'
         screenshot_path = os.path.join(screenshot_dir, name_screenshot)
         
-        # Сохраняем скриншот
         self.driver.save_screenshot(screenshot_path)
         
-        # Шаг в отчете Allure, если тест запускается с Allure, прикрепляем скриншот
-        with allure.step(title="Screen taken: " + name_screenshot):
+        with allure.step(f"Screen taken: {name_screenshot}"):
             print(f"Screenshot saved successfully at: {screenshot_path}")
-            
-            # Прикрепляем файл скриншота к отчету Allure
             allure.attach.file(screenshot_path, name="Screenshot", attachment_type=allure.attachment_type.PNG)
     
-    """ Click button"""
-    def click_button(self, element_dict: Dict[str, str], index: int = 1, wait_type: str = 'clickable') -> None:
+    """ Click button """
+    
+    def click_button(self, element_dict: Dict[str, str], wait_type: str = 'clickable') -> None:
         """
-        Кликает по кнопке с заданным типом ожидания и опционально по индексу элемента.
+        Кликает по кнопке с заданным типом ожидания.
 
         Parameters
         ----------
         element_dict : dict
             Словарь с информацией о кнопке для клика.
-        index : int, optional
-            Индекс элемента в списке однотипных элементов. По умолчанию 1 (первый элемент).
         wait_type : str, optional
-            Тип ожидания элемента перед кликом ('clickable', 'visible', 'located', 'find'), по умолчанию 'clickable'.
-
+            Тип ожидания элемента перед кликом ('clickable', 'visible', 'located', 'find'). По умолчанию 'clickable'.
         """
-        element_name = f"{element_dict['name']} index {index}" if index > 1 else element_dict['name']
-        locator = f"({element_dict['xpath']})[{index}]" if index > 1 else element_dict['xpath']
-        updated_element_dict = {"name": element_name, "xpath": locator}
-        
-        with allure.step(title=f"Click on {element_name}"):
-            button_dict = self.get_element(updated_element_dict, wait_type)
+        with allure.step(f"Click on {element_dict['name']}"):
+            button_dict = self.get_element(element_dict, wait_type)
             button_dict['element'].click()
             print(f"Click on {button_dict['name']}")
     
-    """ Input in field with optional click, enter, index """
+    """ Input in field with optional click and enter """
+    
     def input_in_field(self, element_dict: Dict[str, str], value: str, click_first: bool = False,
-                       press_enter: bool = False, safe: bool = False,
-                       wait_type: str = 'clickable', index: int = 1) -> None:
+                       press_enter: bool = False, wait_type: str = 'clickable') -> None:
         """
         Универсальный метод для ввода текста в поле с опциональным кликом перед вводом и нажатием Enter после.
-        Поддерживает дополнительные параметры для управления взаимодействием, включая индекс элемента
-        и выбор типа ожидания доступности элемента.
 
         Parameters
         ----------
@@ -253,36 +226,27 @@ class Base:
         value : str
             Значение для ввода.
         click_first : bool, optional
-            Если True, сначала кликает по полю перед вводом текста.
+            Если True, сначала кликает по полю перед вводом текста. По умолчанию False.
         press_enter : bool, optional
-            Если True, нажимает Enter после ввода текста.
-        safe : bool, optional
-            Если True, заменяет введенное значение на символы "***" в логах.
+            Если True, нажимает Enter после ввода текста. По умолчанию False.
         wait_type : str, optional
-            Тип ожидания элемента ('clickable', 'visible', 'located', 'find'), по умолчанию 'clickable'.
-        index : int, optional
-            Индекс элемента в списке однотипных элементов. По умолчанию 1 (первый элемент).
-
+            Тип ожидания элемента ('clickable', 'visible', 'located', 'find'). По умолчанию 'clickable'.
         """
-        log_value = "***" if safe else value
-        element_name = f"{element_dict['name']} index {index}" if index > 1 else element_dict['name']
-        locator = f"({element_dict['xpath']})[{index}]" if index > 1 else element_dict['xpath']
-        updated_element_dict = {"name": element_name, "xpath": locator}
-        
-        with allure.step(title=f"{('Click and ' if click_first else '')}Input in {element_name}: " + log_value):
-            field_dict = self.get_element(updated_element_dict, wait_type)
+        with allure.step(f"{'Click and ' if click_first else ''}Input in {element_dict['name']}: {value}"):
+            field_dict = self.get_element(element_dict, wait_type)
             if click_first:
                 field_dict['element'].click()
             field_dict['element'].send_keys(value)
             if press_enter:
                 field_dict['element'].send_keys(Keys.ENTER)
-            print(f"{('Click and ' if click_first else '')}Input in {field_dict['name']}: " + log_value)
+            print(f"{'Click and ' if click_first else ''}Input in {element_dict['name']}: {value}")
     
-    """Select option in dropdown by text, value or index """
+    """ Select option in dropdown by text, value or index """
+    
     def select_option(self, element_dict: Dict[str, str], option: str, by: str = 'text',
                       wait_type: str = 'clickable') -> None:
         """
-        Выбирает опцию в выпадающем списке <select> с опциональным типом ожидания и шагами Allure.
+        Выбирает опцию в выпадающем списке <select> с опциональным типом ожидания.
 
         Parameters
         ----------
@@ -294,17 +258,13 @@ class Base:
             Критерий выбора опции ('text', 'value', 'index'). По умолчанию 'text'.
         wait_type : str, optional
             Тип ожидания элемента перед выбором ('clickable', 'visible', 'located', 'find'). По умолчанию 'clickable'.
-
         """
-        # Формируем шаг Allure с названием выпадающего списка
-        step_title = f"Select '{option}' from dropdown '{element_dict['name']}'"
+        step_title = f"Selected option '{option}' from dropdown '{element_dict['name']}' by {by}"
         
         with allure.step(step_title):
-            # Получаем элемент <select> с заданным типом ожидания
             select_element = self.get_element(element_dict, wait_type)['element']
             select = Select(select_element)
             
-            # Выбор опции в зависимости от критерия
             if by == 'text':
                 select.select_by_visible_text(option)
             elif by == 'value':
@@ -314,15 +274,15 @@ class Base:
             else:
                 raise ValueError(f"Недопустимый критерий выбора опции: выберите 'text', 'value' или 'index'.")
             
-            # Вывод в консоль с именем выпадающего списка
             print(f"Selected option '{option}' from dropdown '{element_dict['name']}' by {by}")
-            
-    """ Backspace all and input with optional click, enter"""
+    
+    """ Backspace all and input with optional click, enter, and wait type """
+    
     def backspace_all_and_input(self, element_dict: Dict[str, str], value: str,
-                                click_first: bool = False, press_enter: Optional[bool] = False) -> None:
+                                click_first: bool = False, press_enter: bool = False,
+                                wait_type: str = 'clickable') -> None:
         """
-        Очищает поле ввода путем нажатий клавиши Backspace для каждого символа в поле,
-        затем вводит новое значение.
+        Очищает поле ввода путем нажатий клавиши Backspace для каждого символа в поле, затем вводит новое значение.
 
         Parameters
         ----------
@@ -331,14 +291,16 @@ class Base:
         value : str
             Значение для ввода.
         click_first : bool, optional
-            Если True, сначала кликает по полю перед вводом текста.
+            Если True, сначала кликает по полю перед вводом текста. По умолчанию False.
         press_enter : bool, optional
-            Если True, нажимает Enter после ввода значения.
-
+            Если True, нажимает Enter после ввода значения. По умолчанию False.
+        wait_type : str, optional
+            Тип ожидания элемента. По умолчанию 'clickable'.
+            Доступные варианты: 'clickable', 'visible', 'located', 'find', 'invisibility'.
         """
-        element_name = element_dict['name']
-        with allure.step(title=f"{'Click and ' if click_first else ''}Backspace and input in {element_name}: {value}"):
-            field_dict = self.get_element(element_dict)
+        with allure.step(
+                f"{'Click and ' if click_first else ''}Backspace and input in {element_dict['name']}: {value}"):
+            field_dict = self.get_element(element_dict, wait_type=wait_type)
             if click_first:
                 field_dict['element'].click()
             current_value = field_dict['element'].get_attribute('value')
@@ -347,4 +309,4 @@ class Base:
             field_dict['element'].send_keys(value)
             if press_enter:
                 field_dict['element'].send_keys(Keys.ENTER)
-            print(f"{'Click and ' if click_first else ''}Backspaced and input in {element_name}: {value}")
+            print(f"{'Click and ' if click_first else ''}Backspaced and input in {element_dict['name']}: {value}")

@@ -1,5 +1,4 @@
 import time
-
 import allure
 from base.base_class import Base
 
@@ -9,15 +8,15 @@ class CellList(Base):
         super().__init__(driver)
         self.driver = driver
         self.url = 'https://samples.gwtproject.org/samples/Showcase/Showcase.html#!CwCellList'
-
+    
     # Locators
     first_name_input = {
         "xpath": "(//input[@class='gwt-TextBox'])[1]",
-        "name": 'First Name fild'
+        "name": 'First Name field'
     }
     last_name_input = {
         "xpath": "(//input[@class='gwt-TextBox'])[2]",
-        "name": 'Last Name fild'
+        "name": 'Last Name field'
     }
     category_select = {
         "xpath": "//select[@class='gwt-ListBox']",
@@ -25,11 +24,11 @@ class CellList(Base):
     }
     birthday_input = {
         "xpath": "//input[@class='gwt-DateBox']",
-        "name": 'Birthday fild'
+        "name": 'Birthday field'
     }
     address_input = {
         "xpath": "//textarea[@class='gwt-TextArea']",
-        "name": 'Address fild'
+        "name": 'Address field'
     }
     update_contact_button = {
         "xpath": "//button[@class='gwt-Button' and text()='Update Contact']",
@@ -77,43 +76,60 @@ class CellList(Base):
     }
     
     # Methods
-    """Open page"""
+    """ Open page """
+    
     def open_page(self) -> None:
         """
         Открывает страницу CellList.
         """
         with allure.step("Open CellList page"):
-            self.driver.maximize_window()  # Разворачиваем окно браузера в полноэкранный режим
-            self.driver.get(self.url)  # Открываем нужную страницу
-            print("Opening CellList page: " + self.url)
+            self.driver.maximize_window()
+            self.driver.get(self.url)
+            print(f"Opening CellList page: {self.url}")
+    
+    """ Scroll to bottom """
     
     def scroll_to_bottom(self) -> None:
         """
         Скроллит список контактов до самого низа, пока не будет достигнут конец списка.
         """
         with allure.step("Scroll to the bottom of the contact list"):
-            # Получаем элемент списка контактов, ожидая, пока он станет видимым
+            print("Scroll to the bottom of the contact list")
             contact_list_element = self.get_element(self.contact_list, wait_type="visible")['element']
-            
-            # Получаем начальную высоту элемента списка для отслеживания изменений
             last_height = self.driver.execute_script("return arguments[0].scrollHeight", contact_list_element)
             
-            # Начинаем цикл для скролла до тех пор, пока высота списка не перестанет изменяться
             while True:
-                # Скроллим вниз на высоту списка
                 self.driver.execute_script("arguments[0].scrollTo(0, arguments[0].scrollHeight);", contact_list_element)
-                
-                # Задержка для выполнения скролла
                 time.sleep(0.1)
-                
-                # Получаем новую высоту списка после скролла
                 new_height = self.driver.execute_script("return arguments[0].scrollHeight", contact_list_element)
                 
-                # Если новая высота равна старой, значит, достигнут конец списка
                 if new_height == last_height:
                     print("Reached the bottom of the contact list.")
-                    break  # Прерываем цикл, когда достигнут низ списка
+                    with allure.step("Reached the bottom of the contact list"):
+                        pass
+                    break
                 
-                # Обновляем высоту для следующего цикла
-                last_height = new_height
+                else:
+                    last_height = new_height
+    
+    """ Scroll to top """
+    
+    def scroll_to_top(self) -> None:
+        """
+        Скроллит список контактов до самого верха, пока не будет достигнут верх списка.
+        """
+        with allure.step("Scroll to the bottom of the contact list"):
+            print("Scroll to the bottom of the contact list")
+            contact_list_element = self.get_element(self.contact_list, wait_type="visible")['element']
+            scroll_position = self.driver.execute_script("return arguments[0].scrollTop", contact_list_element)
+            
+            while scroll_position > 0:
+                self.driver.execute_script("arguments[0].scrollTo(0, 0);", contact_list_element)
+                time.sleep(0.1)
+                scroll_position = self.driver.execute_script("return arguments[0].scrollTop", contact_list_element)
                 
+                if scroll_position == 0:
+                    print("Reached the top of the contact list.")
+                    with allure.step("Reached the top of the contact list"):
+                        pass
+                    break

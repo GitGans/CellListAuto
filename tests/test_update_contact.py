@@ -3,11 +3,14 @@ import allure
 from pages.cell_list_page import CellList
 from faker import Faker
 
+# Список всех возможных категорий
+contact_types = ["Family", "Friends", "Coworkers", "Businesses", "Contacts"]
+
 
 @allure.story("Позитивные тесты")
 @allure.feature('Редактирование контакта')
-@allure.description('Тест редактирования существующего контакта: редактируем - Первый в списке, '
-                    'имя, фамилия, дата рождения и адрес - Случайные, тип контакта - Случайный выбор')
+@allure.description('Тест редактирования существующего контакта: редактируем первый в списке. '
+                    'Имя, фамилия, дата рождения и адрес — случайные. Тип контакта — случайный выбор.')
 def test_update_contact(base_fixture):
     base = base_fixture  # Получаем объект base из фикстуры
     cell_list_page = CellList(base.driver)  # Инициализация класса CellList
@@ -33,9 +36,6 @@ def test_update_contact(base_fixture):
     selected_category_element = cell_list_page.get_element(cell_list_page.category_select, "visible")['element']
     selected_category = selected_category_element.get_attribute('value')
     
-    # Список всех возможных категорий
-    contact_types = ["Family", "Friends", "Coworkers", "Businesses", "Contacts"]
-    
     # Исключаем текущую категорию из списка
     available_contact_types = [contact_type for contact_type in contact_types if contact_type != selected_category]
     
@@ -44,6 +44,7 @@ def test_update_contact(base_fixture):
     
     # Редактируем имя контакта
     cell_list_page.backspace_all_and_input(cell_list_page.first_name_input, first_name)
+    
     # Редактируем фамилию контакта
     cell_list_page.backspace_all_and_input(cell_list_page.last_name_input, last_name)
     
